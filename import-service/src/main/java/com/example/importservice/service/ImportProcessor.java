@@ -32,7 +32,7 @@ public class ImportProcessor {
         System.out.println("=== [IMPORT-SERVICE] Файл: " + message.getFileName());
         System.out.println("=== [IMPORT-SERVICE] ID импорта: " + message.getImportHistoryId());
         System.out.println("=== [IMPORT-SERVICE] ID пользователя: " + message.getUserId());
-        
+        boolean status = true;
         try {
             User user = userService.getUserById(message.getUserId());
             System.out.println("=== [IMPORT-SERVICE] Пользователь найден: " + user.getUsername());
@@ -46,7 +46,6 @@ public class ImportProcessor {
             
             long savedCount = 0;
             List<String> errors = new ArrayList<>();
-            
             for (StudyGroup group : studyGroups) {
                 try {
                     validateStudyGroup(group);
@@ -56,17 +55,20 @@ public class ImportProcessor {
                     }
                     group.setCreatedBy(user);
                     System.out.println("=== [IMPORT-SERVICE] Установлен created_by для группы: " + user.getUsername());
-                    
                     studyGroupService.save(group);
                     savedCount++;
                     System.out.println("=== [IMPORT-SERVICE] Сохранена группа: " + group.getName());
                 } catch (Exception e) {
+                    status = false;
                     String error = String.format("Ошибка в группе %s: %s", group.getName(), e.getMessage());
                     System.out.println("=== [IMPORT-SERVICE] ОШИБКА: " + error);
                     errors.add(error);
                 }
             }
-            importHistory.setStatus(true);
+            if(!status) {
+                savedCount = 0;
+            }
+            importHistory.setStatus(status);
             importHistory.setCountElement(savedCount);
             importHistory.setAddedBy(user);
             
@@ -79,7 +81,7 @@ public class ImportProcessor {
                 ImportHistory importHistory = importHistoryRepository.findById(message.getImportHistoryId())
                         .orElseThrow(() -> new RuntimeException("История импорта не найдена"));
                 
-                importHistory.setStatus(false);
+                importHistory.setStatus(status);
                 importHistory.setCountElement(0);
                 importHistoryRepository.save(importHistory);
                 

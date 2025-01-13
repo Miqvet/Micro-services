@@ -1,6 +1,8 @@
 package com.example.importservice.service;
 
+import com.example.importservice.domain.entity.Person;
 import com.example.importservice.domain.entity.StudyGroup;
+import com.example.importservice.repository.PersonRepository;
 import com.example.importservice.repository.StudyGroupRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
@@ -21,6 +23,7 @@ import java.util.*;
 public class StudyGroupService {
     private final StudyGroupRepository studyGroupRepository;
     private final PersonService personService;
+    private final PersonRepository personRepository;
 
     @Cacheable(value = "studyGroups", key = "'all'")
     public List<StudyGroup> findAll() {
@@ -31,10 +34,12 @@ public class StudyGroupService {
     @CacheEvict(value = "studyGroups", allEntries = true)
     public void save(StudyGroup studyGroup) {
         try {
-            if (studyGroup.getGroupAdmin() != null) {
-                personService.savePerson(studyGroup.getGroupAdmin());
+            Optional<Person> person = personRepository.findByPassportID(studyGroup.getGroupAdmin().getPassportID());
+            if (person.isPresent() &&
+                    !person.get().equals(studyGroup.getGroupAdmin())) {
+                throw new RuntimeException("Ошибка сохранения группы: ");
             }
-            
+            studyGroup.setGroupAdmin(person.get());
             if(studyGroupRepository.existsByName(studyGroup.getName())) {
                 studyGroup.setName(studyGroup.getName() + " " + generateUniqueId(LocalDateTime.now()));
             }

@@ -1,0 +1,106 @@
+######
+
+
+# Создание Дополнительного Задания: Разделение Системы на 2 Микросервиса
+
+В данном проекте мы разделяем систему на два микросервиса: один для импорта файлов, а другой - основной. Общение между микросервисами осуществляется через RabbitMQ, что обеспечивает надежную и асинхронную передачу данных. 
+
+## Архитектура
+- **Импорт-сервис**: отвечает за обработку и импорт файлов + историю импорта.
+- **Основной сервис**: управляет основной логикой приложения и взаимодействует с импорт-сервисом.
+
+### Листнинг для демонстрации работы
+```
+import-service  | Hibernate: select r1_0.id,r1_0.name from role r1_0 where r1_0.name=?
+import-service  | Hibernate: select r1_0.id,r1_0.name from role r1_0 where r1_0.name=?
+rabbitmq        | 2025-01-13 19:13:15.118798+00:00 [info] <0.750.0> Management plugin: HTTP (non-TLS) listener started on port 15672
+rabbitmq        | 2025-01-13 19:13:15.118988+00:00 [info] <0.780.0> Statistics database started.
+rabbitmq        | 2025-01-13 19:13:15.119047+00:00 [info] <0.779.0> Starting worker pool 'management_worker_pool' with 3 processes in it
+rabbitmq        | 2025-01-13 19:13:15.129514+00:00 [info] <0.798.0> Prometheus metrics: HTTP (non-TLS) listener started on port 15692
+rabbitmq        | 2025-01-13 19:13:15.129707+00:00 [info] <0.684.0> Ready to start client connection listeners
+rabbitmq        | 2025-01-13 19:13:15.131542+00:00 [info] <0.842.0> started TCP listener on [::]:5672
+rabbitmq        |  completed with 5 plugins.
+rabbitmq        | 2025-01-13 19:13:15.241722+00:00 [info] <0.684.0> Server startup complete; 5 plugins started.
+rabbitmq        | 2025-01-13 19:13:15.241722+00:00 [info] <0.684.0>  * rabbitmq_prometheus
+rabbitmq        | 2025-01-13 19:13:15.241722+00:00 [info] <0.684.0>  * rabbitmq_federation
+rabbitmq        | 2025-01-13 19:13:15.241722+00:00 [info] <0.684.0>  * rabbitmq_management
+rabbitmq        | 2025-01-13 19:13:15.241722+00:00 [info] <0.684.0>  * rabbitmq_management_agent
+rabbitmq        | 2025-01-13 19:13:15.241722+00:00 [info] <0.684.0>  * rabbitmq_web_dispatch
+rabbitmq        | 2025-01-13 19:13:15.264520+00:00 [info] <0.9.0> Time to start RabbitMQ: 13934 ms
+import-service  | 2025-01-13T19:13:18.086Z  WARN 7 --- [ntContainer#0-1] o.s.a.r.l.SimpleMessageListenerContainer : Consumer raised exception, processing can restart if the connection factory supports it. Exception summary: org.springframework.amqp.AmqpConnectException: java.net.ConnectException: Connection refused
+import-service  | 2025-01-13T19:13:18.092Z  INFO 7 --- [ntContainer#0-1] o.s.a.r.l.SimpleMessageListenerContainer : Restarting Consumer@7d2d7a85: tags=[[]], channel=null, acknowledgeMode=AUTO local queue size=0
+import-service  | 2025-01-13T19:13:18.093Z  INFO 7 --- [ntContainer#0-2] o.s.a.r.c.CachingConnectionFactory       : Attempting to connect to: [rabbitmq:5672]
+rabbitmq        | 2025-01-13 19:13:18.101568+00:00 [info] <0.847.0> accepting AMQP connection <0.847.0> (172.18.0.6:53524 -> 172.18.0.4:5672)
+rabbitmq        | 2025-01-13 19:13:18.131692+00:00 [info] <0.847.0> connection <0.847.0> (172.18.0.6:53524 -> 172.18.0.4:5672) has a client-provided name: rabbitConnectionFactory#64648af1:3
+rabbitmq        | 2025-01-13 19:13:18.134953+00:00 [info] <0.847.0> connection <0.847.0> (172.18.0.6:53524 -> 172.18.0.4:5672 - rabbitConnectionFactory#64648af1:3): user 'guest' authenticated and granted access to vhost '/'
+import-service  | 2025-01-13T19:13:18.137Z  INFO 7 --- [ntContainer#0-2] o.s.a.r.c.CachingConnectionFactory       : Created new connection: rabbitConnectionFactory#64648af1:3/SimpleConnection@7d0cec83 [delegate=amqp://guest@172.18.0.4:5672/, localPort=53524]
+main-service    | 2025-01-13T19:13:23.083Z  INFO 7 --- [Lab1] [nio-8080-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+main-service    | 2025-01-13T19:13:23.084Z  INFO 7 --- [Lab1] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'    
+main-service    | 2025-01-13T19:13:23.086Z  INFO 7 --- [Lab1] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 2 ms
+main-service    | Hibernate: select u1_0.id,u1_0.password,u1_0.role_id,u1_0.username,u1_0.wish_to_be_admin from app_user u1_0 where u1_0.username=?
+main-service    | Hibernate: select r1_0.id,r1_0.name from role r1_0 where r1_0.id=?
+main-service    | Hibernate: select u1_0.id,u1_0.password,u1_0.role_id,u1_0.username,u1_0.wish_to_be_admin from app_user u1_0 where u1_0.username=?
+main-service    | Hibernate: select r1_0.id,r1_0.name from role r1_0 where r1_0.id=?
+main-service    | Hibernate: select u1_0.id,u1_0.password,u1_0.role_id,u1_0.username,u1_0.wish_to_be_admin from app_user u1_0 where u1_0.username=?
+main-service    | Hibernate: select r1_0.id,r1_0.name from role r1_0 where r1_0.id=?
+main-service    | Hibernate: select distinct sg1_0.id,sg1_0.average_mark,sg1_0.can_be_changed,sg1_0.coordinates_id,c1_0.id,c1_0.x,c1_0.y,sg1_0.created_by,cb1_0.id,cb1_0.password,r1_0.id,r1_0.name,cb1_0.username,cb1_0.wish_to_be_admin,sg1_0.creation_date,sg1_0.expelled_students,sg1_0.form_of_education,sg1_0.group_admin_id,sg1_0.name,sg1_0.semester_enum,sg1_0.should_be_expelled,sg1_0.students_count,sg1_0.transferred_students from study_group sg1_0 left join coordinates c1_0 on c1_0.id=sg1_0.coordinates_id left join app_user cb1_0 on cb1_0.id=sg1_0.created_by left join role r1_0 on r1_0.id=cb1_0.role_id
+main-service    | Hibernate: select p1_0.id,p1_0.can_be_changed,p1_0.created_by,cb1_0.id,cb1_0.password,r1_0.id,r1_0.name,cb1_0.username,cb1_0.wish_to_be_admin,p1_0.eye_color,p1_0.hair_color,p1_0.location_id,p1_0.name,p1_0.nationality,p1_0.passportid,p1_0.updated_time from person p1_0 join app_user cb1_0 on cb1_0.id=p1_0.created_by 
+left join role r1_0 on r1_0.id=cb1_0.role_id where p1_0.id=?
+main-service    | Hibernate: select p1_0.id,p1_0.can_be_changed,p1_0.created_by,cb1_0.id,cb1_0.password,r1_0.id,r1_0.name,cb1_0.username,cb1_0.wish_to_be_admin,p1_0.eye_color,p1_0.hair_color,p1_0.location_id,p1_0.name,p1_0.nationality,p1_0.passportid,p1_0.updated_time from person p1_0 join app_user cb1_0 on cb1_0.id=p1_0.created_by 
+left join role r1_0 on r1_0.id=cb1_0.role_id where p1_0.id=?
+main-service    | Hibernate: select u1_0.id,u1_0.password,u1_0.role_id,u1_0.username,u1_0.wish_to_be_admin from app_user u1_0 where u1_0.username=?
+main-service    | Hibernate: select r1_0.id,r1_0.name from role r1_0 where r1_0.id=?
+main-service    | Hibernate: insert into import_history (user_id,count_element,error_message,file_name,import_date,processing_status,status) values (?,?,?,?,?,?,?)    
+main-service    | 2025-01-13T19:14:09.910Z  INFO 7 --- [Lab1] [nio-8080-exec-6] o.s.a.r.c.CachingConnectionFactory       : Attempting to connect to: [rabbitmq:5672]   
+rabbitmq        | 2025-01-13 19:14:09.924932+00:00 [info] <0.871.0> accepting AMQP connection <0.871.0> (172.18.0.5:41746 -> 172.18.0.4:5672)
+rabbitmq        | 2025-01-13 19:14:09.956558+00:00 [info] <0.871.0> connection <0.871.0> (172.18.0.5:41746 -> 172.18.0.4:5672) has a client-provided name: rabbitConnectionFactory#1495f70:0
+rabbitmq        | 2025-01-13 19:14:09.960492+00:00 [info] <0.871.0> connection <0.871.0> (172.18.0.5:41746 -> 172.18.0.4:5672 - rabbitConnectionFactory#1495f70:0): user 'guest' authenticated and granted access to vhost '/'
+main-service    | 2025-01-13T19:14:09.965Z  INFO 7 --- [Lab1] [nio-8080-exec-6] o.s.a.r.c.CachingConnectionFactory       : Created new connection: rabbitConnectionFactory#1495f70:0/SimpleConnection@92a39cb [delegate=amqp://guest@172.18.0.4:5672/, localPort=41746]
+main-service    | Hibernate: select distinct sg1_0.id,sg1_0.average_mark,sg1_0.can_be_changed,sg1_0.coordinates_id,c1_0.id,c1_0.x,c1_0.y,sg1_0.created_by,cb1_0.id,cb1_0.password,r1_0.id,r1_0.name,cb1_0.username,cb1_0.wish_to_be_admin,sg1_0.creation_date,sg1_0.expelled_students,sg1_0.form_of_education,sg1_0.group_admin_id,sg1_0.name,sg1_0.semester_enum,sg1_0.should_be_expelled,sg1_0.students_count,sg1_0.transferred_students from study_group sg1_0 left join coordinates c1_0 on c1_0.id=sg1_0.coordinates_id left join app_user cb1_0 on cb1_0.id=sg1_0.created_by left join role r1_0 on r1_0.id=cb1_0.role_id
+main-service    | Hibernate: select p1_0.id,p1_0.can_be_changed,p1_0.created_by,cb1_0.id,cb1_0.password,r1_0.id,r1_0.name,cb1_0.username,cb1_0.wish_to_be_admin,p1_0.eye_color,p1_0.hair_color,p1_0.location_id,p1_0.name,p1_0.nationality,p1_0.passportid,p1_0.updated_time from person p1_0 join app_user cb1_0 on cb1_0.id=p1_0.created_by 
+left join role r1_0 on r1_0.id=cb1_0.role_id where p1_0.id=?
+main-service    | Hibernate: select p1_0.id,p1_0.can_be_changed,p1_0.created_by,cb1_0.id,cb1_0.password,r1_0.id,r1_0.name,cb1_0.username,cb1_0.wish_to_be_admin,p1_0.eye_color,p1_0.hair_color,p1_0.location_id,p1_0.name,p1_0.nationality,p1_0.passportid,p1_0.updated_time from person p1_0 join app_user cb1_0 on cb1_0.id=p1_0.created_by 
+left join role r1_0 on r1_0.id=cb1_0.role_id where p1_0.id=?
+import-service  | 
+import-service  | === [IMPORT-SERVICE] Получено новое сообщение для обработки ===
+import-service  | === [IMPORT-SERVICE] Файл: data2.json
+import-service  | === [IMPORT-SERVICE] ID импорта: 23
+import-service  | === [IMPORT-SERVICE] ID пользователя: 1
+import-service  | Hibernate: select u1_0.id,u1_0.password,r1_0.id,r1_0.name,u1_0.username,u1_0.wish_to_be_admin from app_user u1_0 left join role r1_0 on r1_0.id=u1_0.role_id where u1_0.id=?
+import-service  | === [IMPORT-SERVICE] Пользователь найден: admin
+import-service  | Hibernate: select ih1_0.id,ab1_0.id,ab1_0.password,r1_0.id,r1_0.name,ab1_0.username,ab1_0.wish_to_be_admin,ih1_0.count_element,ih1_0.file_name,ih1_0.import_date,ih1_0.status from import_history ih1_0 left join app_user ab1_0 on ab1_0.id=ih1_0.user_id left join role r1_0 on r1_0.id=ab1_0.role_id where ih1_0.id=?    
+import-service  | === [IMPORT-SERVICE] Прочитано групп из файла: 2
+import-service  | === [IMPORT-SERVICE] Установлен created_by для администратора группы: admin
+import-service  | === [IMPORT-SERVICE] Установлен created_by для группы: admin
+import-service  | Hibernate: select p1_0.id,p1_0.can_be_changed,p1_0.created_by,p1_0.eye_color,p1_0.hair_color,p1_0.location_id,p1_0.name,p1_0.nationality,p1_0.passportid,p1_0.updated_time from person p1_0 where p1_0.passportid=?
+import-service  | Hibernate: select u1_0.id,u1_0.password,r1_0.id,r1_0.name,u1_0.username,u1_0.wish_to_be_admin from app_user u1_0 left join role r1_0 on r1_0.id=u1_0.role_id where u1_0.id=?
+import-service  | Hibernate: select l1_0.id,l1_0.name,l1_0.x,l1_0.y from location l1_0 where l1_0.id=?
+import-service  | Hibernate: select sg1_0.id from study_group sg1_0 where sg1_0.name=? fetch first ? rows only
+import-service  | Hibernate: insert into coordinates (x,y) values (?,?)
+import-service  | Hibernate: insert into study_group (average_mark,can_be_changed,coordinates_id,created_by,creation_date,expelled_students,form_of_education,group_admin_id,name,semester_enum,should_be_expelled,students_count,transferred_students) values (?,?,?,?,?,?,?,?,?,?,?,?,?)
+import-service  | === [IMPORT-SERVICE] Сохранена группа: Test12 20250113191410493730517
+import-service  | === [IMPORT-SERVICE] Установлен created_by для администратора группы: admin
+import-service  | === [IMPORT-SERVICE] Установлен created_by для группы: admin
+import-service  | Hibernate: select p1_0.id,p1_0.can_be_changed,p1_0.created_by,p1_0.eye_color,p1_0.hair_color,p1_0.location_id,p1_0.name,p1_0.nationality,p1_0.passportid,p1_0.updated_time from person p1_0 where p1_0.passportid=?
+import-service  | Hibernate: select u1_0.id,u1_0.password,r1_0.id,r1_0.name,u1_0.username,u1_0.wish_to_be_admin from app_user u1_0 left join role r1_0 on r1_0.id=u1_0.role_id where u1_0.id=?
+import-service  | Hibernate: select l1_0.id,l1_0.name,l1_0.x,l1_0.y from location l1_0 where l1_0.id=?
+import-service  | Hibernate: select sg1_0.id from study_group sg1_0 where sg1_0.name=? fetch first ? rows only
+in_id,name,semester_enum,should_be_expelled,students_count,transferred_students) values (?,?,?,?,?,?,?,?,?,?,?,?,?)
+import-service  | === [IMPORT-SERVICE] Сохранена группа: Test12 20250113191410493730517
+import-service  | === [IMPORT-SERVICE] Установлен created_by для администратора группы: admin
+import-service  | === [IMPORT-SERVICE] Установлен created_by для группы: admin
+import-service  | Hibernate: select p1_0.id,p1_0.can_be_changed,p1_0.created_by,p1_0.eye_color,p1_0.hair_color,p1_0.location_id,p1_0.name,p1_0.nationality,p1_0.passportid,p1_0.updated_time from person p1_0 where p1_0.passportid=?
+import-service  | Hibernate: select u1_0.id,u1_0.password,r1_0.id,r1_0.name,u1_0.username,u1_0.wish_to_be_admin from app_user u1_0 left join role r1_0 on r1_0.id=u1_0.role_id where u1_0.id=?
+import-service  | Hibernate: select l1_0.id,l1_0.name,l1_0.x,l1_0.y from location l1_0 where l1_0.id=?
+import-service  | Hibernate: select sg1_0.id from study_group sg1_0 where sg1_0.name=? fetch first ? rows only
+import-service  | Hibernate: insert into coordinates (x,y) values (?,?)
+import-service  | Hibernate: insert into study_group (average_mark,can_be_changed,coordinates_id,created_by,creation_date,expelled_students,form_of_education,group_admin_id,name,semester_enum,should_be_expelled,students_count,transferred_students) values (?,?,?,?,?,?,?,?,?,?,?,?,?)
+import-service  | === [IMPORT-SERVICE] Сохранена группа: Test4 20250113191410572568495
+import-service  | Hibernate: select ih1_0.id,ab1_0.id,ab1_0.password,r1_0.id,r1_0.name,ab1_0.username,ab1_0.wish_to_be_admin,ih1_0.count_element,ih1_0.file_name,ih1_0.import_date,ih1_0.status from import_history ih1_0 left join app_user ab1_0 on ab1_0.id=ih1_0.user_id left join role r1_0 on r1_0.id=ab1_0.role_id where ih1_0.id=?    
+import-service  | Hibernate: update import_history set user_id=?,count_element=?,file_name=?,import_date=?,status=? where id=?
+import-service  | === [IMPORT-SERVICE] Статус импорта обновлен в БД ===
+import-service  |
+main-service    | 2025-01-13T19:14:12.694Z  INFO 7 --- [Lab1] [MessageBroker-2] o.s.w.s.c.WebSocketMessageBrokerStats    : WebSocketSession[1 current WS(1)-HttpStream(0)-HttpPoll(0), 2 total, 0 closed abnormally (0 connect failure, 0 send limit, 0 transport error)], stompSubProtocol[processed CONNECT(2)-CONNECTED(2)-DISCONNECT(0)], 
+stompBrokerRelay[null], inboundChannel[pool size = 12, active threads = 0, queued tasks = 0, completed tasks = 15], outboundChannel[pool size = 3, active threads = 0, 
+queued tasks = 0, completed tasks = 3], sockJsScheduler[pool size = 6, active threads = 1, queued tasks = 2, completed tasks = 9]
+```

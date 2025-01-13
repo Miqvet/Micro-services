@@ -1,0 +1,99 @@
+version: '3.8'
+services:
+  main-service:
+    build: 
+      context: ./main-service
+    container_name: main-service
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/study_group
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: miqvet
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_BUCKET_NAME: imports
+      MINIO_URL: http://minio:9000
+      SPRING_RABBITMQ_HOST: rabbitmq
+    depends_on:
+      - db
+      - minio
+      - rabbitmq
+    networks:
+      - app-network
+
+  import-service:
+    build: 
+      context: ./import-service
+    container_name: import-service
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/study_group
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: miqvet
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_BUCKET_NAME: imports
+      MINIO_URL: http://minio:9000
+      SPRING_RABBITMQ_HOST: rabbitmq
+      MAIN_SERVICE_URL: http://main-service:8080
+    depends_on:
+      - main-service
+      - rabbitmq
+    networks:
+      - app-network
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    networks:
+      - app-network
+
+  db:
+    image: postgres:15
+    container_name: postgres-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: miqvet
+      POSTGRES_DB: study_group
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  minio:
+    image: bitnami/minio:latest
+    container_name: minio
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - 9001:9001
+    networks:
+      - app-network
+    volumes:
+      - minio_data:/data
+      - minio_config:/bitnami/minio
+      - minio_data_specific:/bitnami/minio/data
+      - minio_certs:/certs
+
+volumes:
+  postgres-data:
+  minio_data:
+  minio_config:
+  minio_data_specific:
+  minio_certs:
+
+networks:
+  app-network:
+    driver: bridge

@@ -67,13 +67,13 @@ public class ImportService {
         try {
             minioService.uploadFile(fileKey, file.getInputStream(), file.getContentType());
 
-            // ImportHistory importHistory = new ImportHistory();
-            // importHistory.setFileName(fileKey);
-            // importHistory.setImportDate(LocalDateTime.now());
-            // importHistory.setAddedBy(currentUser);
-            // importHistory.setStatus(false); 
-            // importHistory.setCountElement(0);
-            // ImportHistory savedHistory = importHistoryRepository.save(importHistory);
+             ImportHistory importHistory = new ImportHistory();
+             importHistory.setFileName(fileKey);
+             importHistory.setImportDate(LocalDateTime.now());
+             importHistory.setAddedBy(currentUser);
+             importHistory.setStatus(false);
+             importHistory.setCountElement(0);
+             ImportHistory savedHistory = importHistoryRepository.save(importHistory);
 
         
             ImportMessage message = new ImportMessage(
@@ -234,42 +234,6 @@ public class ImportService {
         
         if (!errors.isEmpty()) {
             throw new RuntimeException(String.join(", ", errors));
-        }
-    }
-
-    public void processImport(MultipartFile file, String username) throws Exception {
-        System.out.println("\n=== [MAIN-SERVICE] Начало обработки импорта ===");
-        System.out.println("=== [MAIN-SERVICE] Файл: " + file.getOriginalFilename());
-        System.out.println("=== [MAIN-SERVICE] Пользователь: " + username);
-
-        try {
-            
-            String fileName = UUID.randomUUID().toString();
-            minioService.uploadFile(fileName, file.getInputStream(), file.getContentType());
-            System.out.println("=== [MAIN-SERVICE] Файл сохранен в MinIO: " + fileName);
-                 
-            // ImportHistory history = new ImportHistory();
-            // history.setFileName(fileName);
-            // history.setImportDate(LocalDateTime.now());
-            // history.setAddedBy(userService.getByUsername(username));
-            // history.setStatus(false);
-            // history.setCountElement(0);
-            // ImportHistory savedHistory = importHistoryRepository.save(history);
-            // System.out.println("=== [MAIN-SERVICE] Создана запись в истории импорта: " + savedHistory.getId());
-            
-            ImportMessage message = new ImportMessage(
-                fileName,
-                savedHistory.getId(),
-                savedHistory.getAddedBy().getId(),
-                file.getContentType()
-            );
-            
-            rabbitTemplate.convertAndSend("import-exchange", "import", message);
-            System.out.println("=== [MAIN-SERVICE] Сообщение отправлено в RabbitMQ ===\n");
-
-        } catch (Exception e) {
-            System.out.println("=== [MAIN-SERVICE] ОШИБКА: " + e.getMessage());
-            throw new RuntimeException("Ошибка при загрузке файла", e);
         }
     }
 }
